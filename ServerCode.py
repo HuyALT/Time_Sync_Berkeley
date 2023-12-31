@@ -83,41 +83,44 @@ if run_as_admin():
         text_1.insert(tk.END, f'>>Time difference of {ipaddr} is {request} \n')
         text_1.config(state=tk.DISABLED)
 
-    def time_sysnc_client(client_socket):
-        ipaddr, port = client_socket.getsockname()
+    def time_avg():
         avg = 0
         for i in list_different_time:
             avg = avg+i
         avg = avg/len(list_different_time)
         server_time = datetime.datetime.now()
         server_time = server_time + datetime.timedelta(seconds=int(avg))
+        text_1.config(state=tk.NORMAL)
+        text_1.insert(tk.END, f'>>Average seconds is {avg}\n')
+        text_1.config(state=tk.DISABLED)
+        return server_time
 
-        set_system_time(server_time)
-        set_system_date(server_time)
+    def time_sysnc_client(client_socket, server_time):
+        ipaddr, port = client_socket.getsockname()
         server_time =  server_time.strftime('%m-%d-%Y %H:%M:%S')
         text_1.config(state=tk.NORMAL)
         text_1.insert(tk.END, f'Server time after change is {server_time}\n')
-        text_1.insert(tk.END, f'>>Average seconds is {avg}\n')
+
         message = server_time+'B'
         client_socket.send(message.encode('utf-8'))
 
-        text_1.insert(tk.END, '>>Send time to client')
+        text_1.insert(tk.END, '>>Send time to client\n')
         text_1.config(state=tk.DISABLED)
 
         request = client_socket.recv(1024)
         text_1.config(state=tk.NORMAL)
         if not request:
-            text_1.insert(tk.END, f'Client {ipaddr} update time fail')
+            text_1.insert(tk.END, f'Client {ipaddr} update time fail\n')
         else:
-            text_1.insert(tk.END, f'Client {ipaddr} update time successful')
+            text_1.insert(tk.END, f'Client {ipaddr} update time successful\n')
         text_1.config(state=tk.DISABLED)
 
     def start_server():
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server_socket.bind(('192.168.1.224', 12345))
+        server_socket.bind(('192.168.99.216', 12345))
         server_socket.listen(5)
         text_1.config(state=tk.NORMAL)
-        text_1.insert(tk.END, ">>Server listening on 192.168.1.224:12345\n")
+        text_1.insert(tk.END, ">>Server listening on 192.168.99.216:12345\n")
         text_1.config(state=tk.DISABLED)
         while True:
             # Accept a connection from a client
@@ -156,8 +159,11 @@ if run_as_admin():
         else:
             for i in list_client_socket:
                 handle_client(i)
+            server_time = time_avg()
+            set_system_time(server_time)
+            set_system_date(server_time)
             for i in list_client_socket:
-                time_sysnc_client(i)
+                time_sysnc_client(i, server_time)
 
 
     def clear_log():
